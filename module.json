@@ -1,0 +1,33 @@
+{
+  "id": "show-action-remaining",
+  "title": "Show Action Remaining",
+  "version": "1.0.0",
+  "compatibility": {
+    "minimum": "12",
+    "verified": "12"
+  },
+  "authors": [
+    {
+      "name": "guitrav18",
+      "flags": {}
+    }
+  ],
+  "esmodules" :[
+    "module/show-action-remaining.js"
+  ],
+  "styles" :[
+    "styles/show-action-remaining.css"
+  ],
+  "languages":[
+    {
+      "lang":"en",
+      "name": "English",
+      "path": "lang/en.json"
+    },
+    {
+			"lang": "pt-BR",
+			"name": "English",
+			"path": "lang/pt-BR.json"
+		}
+  ]
+}
