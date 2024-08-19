@@ -1,3 +1,6 @@
 {
-    "SAR":{}
+    "SAR":{
+        "add.atk.label" : "Ataques Adicionais",
+        "add.atk.hint" : "Número de ataques extras, comumente encontrados nas classes bárbaro, guerreiro e monge."
+    }
 }

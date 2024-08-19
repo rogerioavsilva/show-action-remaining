@@ -1,3 +1,6 @@
 {
-    "SAR":{}
+    "SAR":{
+        "add.atk.label" : "Additional Attacks",
+        "add.atk.hint" : "Number of extra attacks, commonly found in barbarian, fighter and monk class."
+    }
 }
