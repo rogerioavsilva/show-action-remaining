@@ -1,10 +1,37 @@
 console.log("Show Action remaining module !!!!");
 
-function createExtraAttackInfo(app, html, data)  {
+class DnDActions {
+  doneDefaultActions = {
+    attacks: 0,
+    useItem: 0,
+    disengage: 0,
+    ready: 0
+  };
 
+  doneBonusAction = 0;
+  doneReaction = 0;
+
+  reset(){
+	  this.doneDefaultActions = 
+      { 
+        attacks: 0, 
+        useItem: 0, 
+        disengage: 0, 
+        ready: 0
+      };
+	  this.doneBonusAction = 0;
+	  this.doneReaction = 0;
+  };
+}
+
+const currentActions = new DnDActions();
+
+function createExtraAttackInfo(app, html, data)  {
+  const currentActor = app.object.actor;
 
   // Create the textbox and set its initial value from the flag
-  const initialValue = data.document.getFlag("show-action-remaining", "additional_attack") || "";
+  const initialValue = currentActor.getFlag("show-action-remaining", "additional_attack") || "";
+  //const initialValue = data.document.getFlag("show-action-remaining", "additional_attack") || "";
 
   // Find the tab with data-tab="details"
   const detailsTab = html.find('.tab[data-tab="details"]');
@@ -24,7 +51,7 @@ function createExtraAttackInfo(app, html, data)  {
   // Handle the change event to update the flag when the user modifies the input
   html.find('input[name="sar.additional.attacks"]').change(async (event) => {
     const newValue = event.target.value;
-    await data.document.setFlag("show-action-remaining", "additional_attack", newValue);
+    await currentActor.setFlag("show-action-remaining", "additional_attack", newValue);
     console.log("Updated customData flag to:", newValue);
   });
 
@@ -35,9 +62,26 @@ function createExtraAttackInfo(app, html, data)  {
 }
 
 Hooks.on('dnd5e.rollAttack', (item, roll) => {
+
+	const currentActor = roll.data;
+
+  // Create the textbox and set its initial value from the flag
+  const numberOfAttacks = Number(currentActor.flags["show-action-remaining"].additional_attack) + 1;
+  
     console.log(item.system.activation);
     console.log(item);
     console.log(roll);
+    console.log(item.ownership);
+
+    console.log(`Checando ataques realizado: ${currentActions.doneDefaultActions.attacks}/${numberOfAttacks}`)
+
+	if(currentActions.doneDefaultActions.attacks < numberOfAttacks ){
+    currentActions.doneDefaultActions.attacks++;
+  }else{
+		console.log("Sem ataques suficientes")
+  }
+
+	console.log(`Atualizando ataques realizado: ${currentActions.doneDefaultActions.attacks}/${numberOfAttacks}`)
 
   });
 
@@ -46,6 +90,11 @@ Hooks.on('dnd5e.rollAttack', (item, roll) => {
     console.log(combat);
     console.log(prior);
     console.log(current);
+	  console.log("Antes reset");	
+	  console.log(currentActions);
+	  currentActions.reset(); //TODO: set zero if is init of current turn
+	  console.log("apos reset");
+	  console.log(currentActions);
 
   });
 
@@ -67,6 +116,27 @@ Hooks.on('dnd5e.rollAttack', (item, roll) => {
 			default:
         console.log("No item found");	
 		}
+  });
+
+
+  Hooks.on("preCreateChatMessage", (message, options, userId) => {
+    // Check if the message is an attack roll (or another type of roll if needed)
+    if (message.roll && message.flags.dnd5e?.roll?.type === "attack") {
+      const actor = game.actors.get(message.speaker.actor);
+
+		console.log(actor)
+      // Example rule: check if the actor has a specific condition or flag
+      //const hasBrokenRule = actor.getFlag("myModule", "isDisarmed"); // Custom rule example
+  
+      //if (hasBrokenRule) {
+        // Cancel the attack if the rule is broken
+        //ui.notifications.warn(`${actor.name} cannot attack because they are disarmed!`);
+        //return false; // Prevent the message (and attack) from being created
+      //}
+    }
+  
+    // Allow the action to proceed if no rules are broken
+    return true;
   });
 
 
