@@ -61,29 +61,68 @@ function createExtraAttackInfo(app, html, data)  {
   }
 }
 
-Hooks.on('dnd5e.rollAttack', (item, roll) => {
+function hasAttackAction(actor){
 
-	const currentActor = roll.data;
+	const actorActions = actor.flags["show-action-remaining"].dnD5eActions || new DnDActions();
 
-  // Create the textbox and set its initial value from the flag
-  const numberOfAttacks = Number(currentActor.flags["show-action-remaining"].additional_attack) + 1;
-  
-    console.log(item.system.activation);
-    console.log(item);
-    console.log(roll);
-    console.log(item.ownership);
+	const numberOfAttacks = Number(actor.flags["show-action-remaining"].additional_attack) + 1;
 
-    console.log(`Checando ataques realizado: ${currentActions.doneDefaultActions.attacks}/${numberOfAttacks}`)
+	console.log(`Checando ataques realizado: ${actorActions.doneDefaultActions.attacks}/${numberOfAttacks}`);
 
 	if(currentActions.doneDefaultActions.attacks < numberOfAttacks ){
-    currentActions.doneDefaultActions.attacks++;
-  }else{
-		console.log("Sem ataques suficientes")
+		return true;
+	}
+	console.log("Sem ataques suficientes");
+	return false;
+}
+
+
+Hooks.on("renderActorSheet", (app, html, data) => {
+  const actor = app.object;
+  
+  // Perform actions when the sheet is opened
+  console.log(`Actor sheet opened for ${actor.name}`);
+
+  const dnD5eActions = actor.getFlag("show-action-remaining", "dnD5eActions");
+
+  if(!dnD5eActions){
+    actor.setFlag("show-action-remaining", "dnD5eActions", new DnDActions());
   }
+  
+});
 
-	console.log(`Atualizando ataques realizado: ${currentActions.doneDefaultActions.attacks}/${numberOfAttacks}`)
+Hooks.on('dnd5e.rollAttack', async (item, roll, options) => {
 
-  });
+	const currentActor = roll.data;
+	const actorActions = currentActor.flags["show-action-remaining"].dnD5eActions || new DnDActions();
+
+	// Create the textbox and set its initial value from the flag
+	const numberOfAttacks = Number(currentActor.flags["show-action-remaining"].additional_attack) + 1;
+	const attacksDone = actorActions.doneDefaultActions.attacks;
+  
+//    console.log(item.system.activation);
+//    console.log(item);
+//    console.log(roll);
+//    console.log(item.ownership);
+
+    console.log(`Checando ataques realizado: ${attacksDone}/${numberOfAttacks}`);
+
+	if(hasAttackAction(currentActor)){
+		actorActions.doneDefaultActions.attacks++;
+	}else{
+		console.log("Sem ataques suficientes")
+		 ui.notifications.error(`${actorActions.name} todos ataques utilizados! ${attacksDone}/${numberOfAttacks}`);
+  
+		return false;
+	}
+
+	console.log(`Atualizando ataques realizado: ${attacksDone}/${numberOfAttacks}`);
+
+	currentActor.flags["show-action-remaining"].dnD5eActions = actorActions;
+
+	return true;
+
+});
 
 
   Hooks.on("combatTurnChange", (combat, prior, current) => {
@@ -128,53 +167,13 @@ Hooks.on('dnd5e.rollAttack', (item, roll) => {
       // Example rule: check if the actor has a specific condition or flag
       //const hasBrokenRule = actor.getFlag("myModule", "isDisarmed"); // Custom rule example
   
-      //if (hasBrokenRule) {
-        // Cancel the attack if the rule is broken
-        //ui.notifications.warn(`${actor.name} cannot attack because they are disarmed!`);
-        //return false; // Prevent the message (and attack) from being created
-      //}
+	    if (hasAttackAction(actor)) {
+	      // Cancel the roll if the actor has 0 or fewer hit points
+	      ui.notifications.error(`${actor.name} cannot attack because they have 0 hit points!`);
+	      return false; // Prevent the message (and roll) from being created
+	    }
     }
   
     // Allow the action to proceed if no rules are broken
     return true;
   });
-
-
-
-//   /* -------------------------------------------------- */
-
-// /**
-//  * Embed a created babonus onto the target object.
-//  * @param {Document} object         The actor, item, effect, or region that should have the babonus.
-//  * @param {Babonus} bonus           The created babonus.
-//  * @param {object} [options]        Creation and return options.
-//  * @returns {Promise<Document>}     The actor, item, effect, or region that has received the babonus.
-//  */
-// async function embedBabonus(object, bonus, options = {}) {
-//   const validDocumentType = ["Actor", "Item", "ActiveEffect", "Region"].includes(object.documentName);
-//   if (!validDocumentType) throw new Error("The document provided is not a valid document type for Build-a-Bonus!");
-//   if (!Object.values(models).some(t => bonus instanceof t)) return null;
-//   const id = await _embedBabonus(object, bonus);
-//   return options.bonusId ? id : object;
-// }
-
-// /**
-//  * Embed a created babonus onto the target object.
-//  * @param {Document} object       The actor, item, effect, or region that should have the babonus.
-//  * @param {Babonus} bonus         The created babonus.
-//  * @returns {Promise<string>}     The id of the bonus created.
-//  */
-// async function _embedBabonus(object, bonus) {
-//   const data = bonus.toObject();
-//   for (const id of Object.keys(data.filters)) {
-//     if (!babonus.abstract.DataFields.filters[id].storage(bonus)) delete data.filters[id];
-//   }
-//   data.id = foundry.utils.randomID();
-//   let collection = babonus.getCollection(object);
-//   if (collection.has(data.id)) collection.delete(data.id);
-//   collection = collection.map(k => k.toObject());
-//   collection.push(data);
-
-//   await object.setFlag("babonus", "bonuses", collection);
-//   return data.id;
-// }
