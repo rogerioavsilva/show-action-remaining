@@ -24,7 +24,42 @@ class DnDActions {
   };
 }
 
-const currentActions = new DnDActions();
+function setDndDefaultActions(actorId){
+
+  const currentActor = game.actors.get(actorId);
+
+  if(!currentActor){
+    console.log(`no action found!`);
+    return;
+  }
+
+  console.log(`SAR - set DnD Default Actions to ${currentActor.name}`);
+  console.log(`${currentActor.name} - made ${currentActor.flags["show-action-remaining"].dnD5eActions.doneDefaultActions.attacks} attacks`);	
+  
+  currentActor.setFlag("show-action-remaining", "dnD5eActions", new DnDActions());  
+
+  console.log(currentActor);
+  console.log(`${currentActor.name} - made ${currentActor.flags["show-action-remaining"].dnD5eActions.doneDefaultActions.attacks} attacks`);	
+  	
+}
+
+function hasAttackAction(actorId){
+
+  const currentActor = game.actors.get(actorId);
+  const actorActions = currentActor.getFlag("show-action-remaining", "dnD5eActions") || new DnDActions();
+  const additionalAttack = Number(currentActor.getFlag("show-action-remaining", "additional_attack")) || 0;
+  const numberOfAttacks =  additionalAttack + 1;
+  const attacksDone = Number(actorActions.doneDefaultActions.attacks);
+
+  if(attacksDone < numberOfAttacks ){
+  	return true;
+  }
+  
+  console.log("sem ataques suficientes");
+  
+  return false;
+}
+
 
 function createExtraAttackInfo(app, html, data)  {
   const currentActor = app.object.actor;
@@ -61,80 +96,58 @@ function createExtraAttackInfo(app, html, data)  {
   }
 }
 
-function hasAttackAction(actor){
-
-	const actorActions = actor.flags["show-action-remaining"].dnD5eActions || new DnDActions();
-
-	const numberOfAttacks = Number(actor.flags["show-action-remaining"].additional_attack) + 1;
-
-	console.log(`Checando ataques realizado: ${actorActions.doneDefaultActions.attacks}/${numberOfAttacks}`);
-
-	if(currentActions.doneDefaultActions.attacks < numberOfAttacks ){
-		return true;
-	}
-	console.log("Sem ataques suficientes");
-	return false;
-}
 
 
 Hooks.on("renderActorSheet", (app, html, data) => {
   const actor = app.object;
   
   // Perform actions when the sheet is opened
-  console.log(`Actor sheet opened for ${actor.name}`);
+  console.log(`SAR - render Actor Sheet ${actor.name}`);
+  setDndDefaultActions(actor.actorId);
+  // const dnD5eActions = actor.getFlag("show-action-remaining", "dnD5eActions");
 
-  const dnD5eActions = actor.getFlag("show-action-remaining", "dnD5eActions");
-
-  if(!dnD5eActions){
-    actor.setFlag("show-action-remaining", "dnD5eActions", new DnDActions());
-  }
+  // if(!dnD5eActions){
+  //   actor.setFlag("show-action-remaining", "dnD5eActions", new DnDActions());
+  // }
   
 });
 
 Hooks.on('dnd5e.rollAttack', async (item, roll, options) => {
 
+	console.log("SAR - Hooks.on('dnd5e.rollAttack')")
 	const currentActor = roll.data;
 	const actorActions = currentActor.flags["show-action-remaining"].dnD5eActions || new DnDActions();
 
 	// Create the textbox and set its initial value from the flag
-	const numberOfAttacks = Number(currentActor.flags["show-action-remaining"].additional_attack) + 1;
-	const attacksDone = actorActions.doneDefaultActions.attacks;
+  const additionalAttacks = Number(currentActor.flags["show-action-remaining"].additional_attack) || 0;
+
+	const numberOfAttacks =  additionalAttacks + 1;
   
 //    console.log(item.system.activation);
 //    console.log(item);
 //    console.log(roll);
 //    console.log(item.ownership);
 
-    console.log(`Checando ataques realizado: ${attacksDone}/${numberOfAttacks}`);
-
-	if(hasAttackAction(currentActor)){
+	if(hasAttackAction(currentActor.actorId)){
 		actorActions.doneDefaultActions.attacks++;
 	}else{
-		console.log("Sem ataques suficientes")
-		 ui.notifications.error(`${actorActions.name} todos ataques utilizados! ${attacksDone}/${numberOfAttacks}`);
-  
+		console.log("'dnd5e.rollAttack' - Sem ataques suficientes")
 		return false;
 	}
 
-	console.log(`Atualizando ataques realizado: ${attacksDone}/${numberOfAttacks}`);
+	console.log(`Atualizando ataques realizado: ${actorActions.doneDefaultActions.attacks}/${numberOfAttacks}`);
 
-	currentActor.flags["show-action-remaining"].dnD5eActions = actorActions;
+	actorActions.flags["show-action-remaining"].dnD5eActions = actorActions;
 
+	console.log(currentActor.flags["show-action-remaining"].dnD5eActions);
 	return true;
 
 });
 
-
   Hooks.on("combatTurnChange", (combat, prior, current) => {
-    console.log(combat);
-    console.log(prior);
-    console.log(current);
-	  console.log("Antes reset");	
-	  console.log(currentActions);
-	  currentActions.reset(); //TODO: set zero if is init of current turn
-	  console.log("apos reset");
-	  console.log(currentActions);
-
+    const currentActor = combat.combatants.get(current.combatantId);
+    console.log(`SAR - combat Turn Change ${currentActor.name}`);
+    setDndDefaultActions(currentActor.actorId);
   });
 
   Hooks.on("renderItemSheet", (app, html, data) => {
@@ -157,23 +170,25 @@ Hooks.on('dnd5e.rollAttack', async (item, roll, options) => {
 		}
   });
 
-
   Hooks.on("preCreateChatMessage", (message, options, userId) => {
     // Check if the message is an attack roll (or another type of roll if needed)
-    if (message.roll && message.flags.dnd5e?.roll?.type === "attack") {
-      const actor = game.actors.get(message.speaker.actor);
+   const actor = game.actors.get(message.speaker.actor);
+	  if (message.rolls && message.flags.dnd5e?.roll?.type === "attack") {
+      
 
-		console.log(actor)
+  		console.log(actor)
       // Example rule: check if the actor has a specific condition or flag
       //const hasBrokenRule = actor.getFlag("myModule", "isDisarmed"); // Custom rule example
   
-	    if (hasAttackAction(actor)) {
+	    if (hasAttackAction(actor.actorId)) {
 	      // Cancel the roll if the actor has 0 or fewer hit points
-	      ui.notifications.error(`${actor.name} cannot attack because they have 0 hit points!`);
-	      return false; // Prevent the message (and roll) from being created
+	      return true; // Prevent the message (and roll) from being created
 	    }
+      ui.notifications.error(`${actor.name} cannot attack because they have no attack action remaining!`);
+      return false;
     }
   
     // Allow the action to proceed if no rules are broken
-    return true;
+	      
+	  return true;
   });
