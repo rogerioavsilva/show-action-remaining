@@ -1,0 +1,44 @@
+.attackOption-panel {
+    background-color:rgba(0, 0, 0, 0.75);
+    position: fixed;
+    z-index: 50;
+    width: 100px;
+    height: 100px;
+}
+
+
+/* .grid-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  } */
+
+  .action-remaining-panel{
+    position: fixed;
+    z-index: 50;
+    width: 100px;
+    height: 100px;
+    background-color:rgba(236, 14, 14, 0.75);
+  }
+  
+  .square-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  
+  .label {
+    font-size: 14px;
+    font-weight: bold;
+  }
+  
+  .square-row {
+    display: flex;
+    gap: 5px;
+  }
+  
+  .square {
+    width: 20px;
+    height: 20px;
+    background-color: blue;
+  }
